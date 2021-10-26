@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { ethers } from 'ethers'
+import myEpicNft from './utils/MyEpicNFT.json'
 
 function App() {
 	/*
@@ -72,8 +74,39 @@ function App() {
 		checkIfWalletIsConnected()
 	}, [])
 
+	const askContractToMintNft = async () => {
+		const CONTRACT_ADDRESS = '0x0c6a83bbd35B0642Ab7983e0c1F02E1553836aDE'
+		try {
+			const { ethereum } = window
+
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum)
+				const signer = provider.getSigner()
+				const connectedContract = new ethers.Contract(
+					CONTRACT_ADDRESS,
+					myEpicNft.abi,
+					signer
+				)
+
+				console.log('Going to pop wallet now to pay gas...')
+				let nftTxn = await connectedContract.makeAnEpicNFT()
+
+				console.log('Mining...please wait.')
+				await nftTxn.wait()
+
+				console.log(
+					`Mined, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`
+				)
+			} else {
+				console.log("Ethereum object doesn't exist!")
+			}
+		} catch (error) {
+			console.log(error)
+		}
+	}
+
 	return (
-		<div>
+		<div className='bg-green-200 h-screen'>
 			<div>
 				<div className='max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8'>
 					<h2 className='text-3xl font-extrabold text-blue-700 sm:text-4xl'>
@@ -91,7 +124,7 @@ function App() {
 						</button>
 					) : (
 						<button
-							onClick={null}
+							onClick={askContractToMintNft}
 							className='mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-gray-50 bg-blue-600 hover:bg-blue-800 sm:w-auto'
 						>
 							Mint
