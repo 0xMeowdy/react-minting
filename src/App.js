@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
-import myEpicNft from './utils/MyEpicNFT.json'
+import HDNFT from './utils/HDNFT.json'
 
 function App() {
 	/*
 	 * Just a state variable we use to store our user's public wallet. Don't forget to import useState.
 	 */
 	const [currentAccount, setCurrentAccount] = useState('')
+
+	const [tokenId, setTokenId] = useState('')
 
 	/*
 	 * Gotta make sure this is async.
@@ -75,7 +77,7 @@ function App() {
 	}, [])
 
 	const askContractToMintNft = async () => {
-		const CONTRACT_ADDRESS = '0x0c6a83bbd35B0642Ab7983e0c1F02E1553836aDE'
+		const CONTRACT_ADDRESS = '0x9278421702B82F606A208c9dd53994d54341bFBe'
 		try {
 			const { ethereum } = window
 
@@ -84,12 +86,15 @@ function App() {
 				const signer = provider.getSigner()
 				const connectedContract = new ethers.Contract(
 					CONTRACT_ADDRESS,
-					myEpicNft.abi,
+					HDNFT.abi,
 					signer
 				)
 
 				console.log('Going to pop wallet now to pay gas...')
-				let nftTxn = await connectedContract.makeAnEpicNFT()
+				let nftTxn = await connectedContract.safeMint(
+					await signer.getAddress(),
+					'token uri goes here'
+				)
 
 				console.log('Mining...please wait.')
 				await nftTxn.wait()
@@ -105,31 +110,92 @@ function App() {
 		}
 	}
 
+	const askToBurn = async userTokenId => {
+		const CONTRACT_ADDRESS = '0x9278421702B82F606A208c9dd53994d54341bFBe'
+		try {
+			const { ethereum } = window
+
+			if (ethereum) {
+				const provider = new ethers.providers.Web3Provider(ethereum)
+				const signer = provider.getSigner()
+				const connectedContract = new ethers.Contract(
+					CONTRACT_ADDRESS,
+					HDNFT.abi,
+					signer
+				)
+
+				console.log('Going to pop wallet now to pay gas...')
+				let nftTxn = await connectedContract.transferFrom(
+					await signer.getAddress(),
+					'0x000000000000000000000000000000000000dEaD',
+					userTokenId
+				)
+
+				console.log('Burning...please wait.')
+				await nftTxn.wait()
+
+				console.log(
+					`Mined, see transaction: https://rinkeby.etherscan.io/tx/${nftTxn.hash}`
+				)
+			} else {
+				console.log("Ethereum object doesn't exist!")
+			}
+		} catch (error) {
+			console.log(error)
+		}
+	}
+
 	return (
-		<div className='bg-green-200 h-screen'>
+		<div className='h-screen bg-white'>
 			<div>
-				<div className='max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8'>
+				{/* minting */}
+				<div className='max-w-2xl px-4 py-16 mx-auto text-center sm:py-20 sm:px-6 lg:px-8'>
 					<h2 className='text-3xl font-extrabold text-blue-700 sm:text-4xl'>
-						<span className='block'>React Minting</span>
+						<span className='block'>Minting</span>
 					</h2>
-					<p className='mt-4 text-lg leading-6 text-gray-600'>
-						Description of collection goes here.
-					</p>
+
 					{currentAccount === '' ? (
 						<button
 							onClick={connectWallet}
-							className='mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-gray-50 bg-blue-600 hover:bg-blue-800 sm:w-auto'
+							className='inline-flex items-center justify-center w-full px-5 py-3 mt-8 text-base font-medium bg-blue-600 border border-transparent rounded-md text-gray-50 hover:bg-blue-800 sm:w-auto'
 						>
 							Connect Wallet
 						</button>
 					) : (
 						<button
 							onClick={askContractToMintNft}
-							className='mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-gray-50 bg-blue-600 hover:bg-blue-800 sm:w-auto'
+							className='inline-flex items-center justify-center w-full px-5 py-3 mt-8 text-base font-medium bg-blue-600 border border-transparent rounded-md text-gray-50 hover:bg-blue-800 sm:w-auto'
 						>
 							Mint
 						</button>
 					)}
+				</div>
+				{/* burning */}
+				<div className='max-w-2xl px-4 py-16 mx-auto text-center sm:py-20 sm:px-6 lg:px-8'>
+					<h2 className='text-3xl font-extrabold text-blue-700 sm:text-4xl'>
+						<span className='block'>Burning</span>
+					</h2>
+					{currentAccount === '' ? (
+						<button
+							onClick={connectWallet}
+							className='inline-flex items-center justify-center w-full px-5 py-3 mt-8 text-base font-medium bg-blue-600 border border-transparent rounded-md text-gray-50 hover:bg-blue-800 sm:w-auto'
+						>
+							Connect Wallet
+						</button>
+					) : (
+						<button
+							onClick={() => askToBurn(tokenId)}
+							className='inline-flex items-center justify-center w-full px-5 py-3 mt-8 text-base font-medium bg-blue-600 border border-transparent rounded-md text-gray-50 hover:bg-blue-800 sm:w-auto'
+						>
+							Burn
+						</button>
+					)}
+					<br />
+					<input
+						className='my-1 border border-black'
+						value={tokenId}
+						onChange={e => setTokenId(e.target.value)}
+					/>
 				</div>
 			</div>
 		</div>
